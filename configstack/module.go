@@ -315,17 +315,24 @@ func getTerragruntSourceForModule(modulePath string, moduleTerragruntConfig *con
 	if moduleUrl == "" && moduleSubdir == "" {
 		return "", errors.WithStackTrace(InvalidSourceUrl{ModulePath: modulePath, ModuleSourceUrl: *moduleTerragruntConfig.Terraform.Source, TerragruntSource: terragruntOptions.Source})
 	}
-	// if only subdir is missing, check if we can obtain a valid module name from the URL portion
-	if moduleUrl != "" && moduleSubdir == "" {
-		moduleSubdirFromUrl, err := getModulePathFromSourceUrl(moduleUrl)
-		if err != nil {
-			return moduleSubdirFromUrl, err
-		}
-		return util.JoinTerraformModulePath(terragruntOptions.Source, moduleSubdirFromUrl), nil
-	}
 
-	return util.JoinTerraformModulePath(terragruntOptions.Source, moduleSubdir), nil
+	// Gets the name of the repo name (or folder name)
+	moduleRepoName, err := getModulePathFromSourceUrl(moduleUrl)
+	if err != nil {
+		return moduleRepoName, err
+	}
+	// Concatenates the --terragrunt-source and the module repo name (or folder name) to get the repo path
+	moduleRepoPath, err := util.JoinPath(terragruntOptions.Source, moduleRepoName), nil
+	if err != nil {
+		return moduleRepoPath, err
+	}
+	// If there is a subdir, concatenates the repo path and the subdir with // in beetween
+	if moduleSubdir != "" {
+		return util.JoinTerraformModulePath(moduleRepoPath, moduleSubdir), nil
+	}
+	return moduleRepoPath, nil
 }
+
 
 // Parse sourceUrl not containing '//', and attempt to obtain a module path.
 // Example:
